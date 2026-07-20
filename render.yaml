@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: xy-receipt-pdf
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: RECEIPT_SECRET
+        generateValue: true
