@@ -17,7 +17,10 @@ app.post('/pdf', async (req, res) => {
     if (got !== SECRET) return res.status(401).json({ ok: false, error: 'unauthorized' });
   }
   const html = req.body && req.body.html;
-  const filename = (req.body && req.body.filename) || 'receipt.pdf';
+  const filename = String((req.body && req.body.filename) || 'receipt.pdf');
+  // HTTP header 只能放 ASCII：含中文/控制字元/引號時改用 receipt.pdf，原檔名放 filename* (UTF-8) 給支援的客戶端
+  const asciiName = /^[\x20-\x7E]+$/.test(filename) && !/["\\]/.test(filename) ? filename : 'receipt.pdf';
+  const utf8Name = encodeURIComponent(filename).replace(/['()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
   if (!html) return res.status(400).json({ ok: false, error: 'missing html' });
 
   let browser;
@@ -36,7 +39,7 @@ app.post('/pdf', async (req, res) => {
       margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' }
     });
     res.set('Content-Type', 'application/pdf');
-    res.set('Content-Disposition', 'inline; filename="' + filename + '"');
+    res.set('Content-Disposition', 'inline; filename="' + asciiName + '"; filename*=UTF-8\'\'' + utf8Name);
     res.send(pdf);
   } catch (e) {
     res.status(500).json({ ok: false, error: String((e && e.message) || e) });
